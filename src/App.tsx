@@ -1,28 +1,71 @@
+import { useState } from 'react'
 import logo from './assets/logo-nlw-expert.svg'
 import { NewNoteCard, NoteCard } from './components'
 
-const note = {
-    date: new Date(),
-    content: '123',
+export interface INote {
+    id: string
+    date: Date
+    content: string
 }
 
 export function App() {
+    const [search, setSearch] = useState('')
+    const [notes, setNotes] = useState<INote[]>(() => {
+        const notesOnStorage = localStorage.getItem('notes')
+
+        if (notesOnStorage) {
+            return JSON.parse(notesOnStorage)
+        }
+
+        return []
+    })
+
+    const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const query = event.target.value
+
+        setSearch(query)
+    }
+
+    const filteredNotes =
+        search !== ''
+            ? notes.filter((note) => note.content.toLocaleLowerCase().includes(search.toLocaleLowerCase()))
+            : notes
+
+    const onNoteCreated = (content: string) => {
+        const newNote = {
+            id: crypto.randomUUID(),
+            date: new Date(),
+            content,
+        }
+
+        const notesArray = [newNote, ...notes]
+
+        setNotes(notesArray)
+
+        localStorage.setItem('notes', JSON.stringify(notesArray))
+    }
+
+    const renderNotes = () => {
+        return filteredNotes.map((note) => <NoteCard key={note.id} note={note} />)
+    }
+
     return (
         <div className="mx-auto max-w-6xl my-12 space-y-6">
             <img src={logo} />
             <form className="w-full">
                 <input
+                    className="w-full bg-transparent text-3xl font-semibold tracking-tight outline-none placeholder:text-slate-500"
                     type="text"
                     placeholder="Busque em suas notas..."
-                    className="w-full bg-transparent text-3xl font-semibold tracking-tight outline-none placeholder:text-slate-500"
+                    onChange={handleSearch}
                 />
             </form>
 
             <div className="h-px bg-slate-700" />
 
             <div className="grid grid-cols-3 gap-6 auto-rows-[250px]">
-                <NewNoteCard />
-                <NoteCard note={note} />
+                <NewNoteCard onNoteCreated={onNoteCreated} />
+                {renderNotes()}
             </div>
         </div>
     )
